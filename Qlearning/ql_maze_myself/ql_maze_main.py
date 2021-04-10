@@ -51,7 +51,7 @@ def ql_main():
                 countlist.append(count*reward)
                 break
         state = maze_test.reset()
-        RL.print_qtable()
+    RL.print_qtable()
     print(countlist)
     print(countpostive)
 
