@@ -13,7 +13,7 @@ from ql_maze_brain import Qltab
 import os
 import time
 
-episodes = 100
+episodes = 500
 countpostive = 0
 countlist = []
 
@@ -24,6 +24,8 @@ def ql_main():
     for episode in range(episodes):
         state = maze_test.get_pos()
         #maze_test.print_maze()
+        if len(countlist) != 0:
+            print(len(countlist), countlist[-1])
         count = 0
         while True:
             #choose action [str]

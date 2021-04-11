@@ -12,7 +12,7 @@ import sys
 import os
 import time
 
-episodes = 100
+episodes = 500
 countpostive = 0
 countlist = []
 
@@ -32,7 +32,8 @@ def sarsa_process():
         action = RL.choose_action(list2string(state))
         #env.print_maze()
         #RL.print_table()
-        print(countlist)
+        if len(countlist) != 0:
+            print(len(countlist), countlist[-1])
         count = 0
         while True:
             #next step
