@@ -23,7 +23,7 @@ RL = Qltab()
 def ql_main():
     for episode in range(episodes):
         state = maze_test.get_pos()
-        maze_test.print_maze()
+        #maze_test.print_maze()
         count = 0
         while True:
             #choose action [str]
@@ -36,10 +36,10 @@ def ql_main():
                 countpostive = countpostive  + 1
 
             # print
-            time.sleep(0.1)
-            os.system("cls")
-            print(action)
-            maze_test.print_maze()
+           # time.sleep(0.1)
+           # os.system("cls")
+           # print(action)
+           # maze_test.print_maze()
             # print
 
             #learn

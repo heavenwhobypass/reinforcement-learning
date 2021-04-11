@@ -17,6 +17,7 @@ class Maze_m: # only cube n*n
             self.martix[2,2] = 1
         else:
             self.martix = martix
+        self.backup = self.martix
         self.action_list = ['up','down', 'right', 'left']
         self.action_num = len(self.action_list)
         self.action_op = np.array([[-1,0],[1,0],[0,1],[0,-1]])
@@ -24,12 +25,14 @@ class Maze_m: # only cube n*n
         self.maxl = self.martix.shape[1]
 
     def reset(self, martix=None):
-        if martix == None:
-            self.martix = np.zeros((4,4))
-            self.martix[1,2] = self.martix[2,1] = -1
-            self.martix[2,2] = 1
-        else:
-            self.martix = martix
+        #if martix == None:
+        #    self.martix = np.zeros((4,4))
+        #    self.martix[1,2] = self.martix[2,1] = -1
+        #    self.martix[2,2] = 1
+        #else:
+        #    self.martix = martix
+
+        self.backup = self.martix
         self.posnow = np.array([0,0])
         return [self.posnow[0],self.posnow[1]]
 
