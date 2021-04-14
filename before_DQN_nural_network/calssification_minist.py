@@ -55,6 +55,7 @@ prediction = add_layer(xs, 784, 10, activation_function=tf.nn.softmax)
 # loss
 cross_entropy = tf.reduce_mean( tf.reduce_sum(tf.square(tf.subtract(ys, prediction)), reduction_indices=[1]))
 #-tf.reduce_sum(ys * tf.log(prediction), reduction_indices=[1])
+#tf.summary.scalar('loss', cross_entropy)
 
 train_step = tf.train.GradientDescentOptimizer(0.51).minimize(cross_entropy)
 with tf.Session() as sess:
