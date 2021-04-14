@@ -46,7 +46,7 @@ class Sarsa:
         # method 1:
         #self.eligibility_trace.loc[state, action] += 1
         # method 2:
-        self.eligibility_trace.loc[state, :] *= 0
+        self.eligibility_trace.loc[state, :] *= 0 # 可以减少对环路的学习
         self.eligibility_trace.loc[state, action] = 1
 
         # q update
