@@ -159,6 +159,7 @@ class DeepQNetwork:
         reward = batch_memory.iloc[:, self.n_features + 1]
 
         q_target[batch_index, eval_act_index] = reward + self.gamma * np.max(q_next, axis=1)
+        # 就是 target  r + gamma * max q(q_, action)
 
         """
         For example in this batch I have 2 samples and 3 actions:
