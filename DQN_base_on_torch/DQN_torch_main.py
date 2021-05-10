@@ -16,7 +16,7 @@ sys.path.append(r'N:\reinforcement_learning\Qlearning\ql_maze_myself')
 from ql_maze_class import Maze_m
 from DQN_torch import DQN
 
-episodes = 1000
+episodes = 100
 countpostive = 0
 countlist = []
 action_list = ['up','down', 'right', 'left']
@@ -34,21 +34,27 @@ def DQN_main():
 
         while True:
             # choose 
-            action_num = RL.choose_action(np.array(state, dtype=np.float32))
+            p = False
+            if episode>98:
+                p=True
+            #    os.system("cls")
+            action_num = RL.choose_action(np.array(state, dtype=np.float32), p)
             action = action_list[action_num]
             # RL take action
             state_next, reward, done = env.step(action)
+            #reward = reward * count
 
 #record
             count += 1
             if reward > 0:
                 global countpostive
                 countpostive = countpostive  + 1
-            #if episode>200 :
-            #    time.sleep(0.1)
-            #    os.system("cls")
-            #    print(action)
-            #    env.print_maze()
+            if episode>98 :
+                time.sleep(0.1)
+                #os.system("cls")
+                print(action)
+                env.print_maze()
+                print(reward)
 
             # store memory
             RL.store_transition(np.array(state), action_num, reward, np.array(state_next))
@@ -61,7 +67,7 @@ def DQN_main():
             state = state_next
             # stop
             if done:
-                countlist.append(count*reward)
+                countlist.append(count*reward)#count*
                 break
             step += 1
     print(countlist)
@@ -69,7 +75,12 @@ def DQN_main():
 
 if __name__ == "__main__":
     #init maze
-    env = Maze_m()
+    testa = np.array([[0,0,0,0,0],
+                     [0,0,0,-1,0],
+                     [0,0,0,0,0],
+                     [0,-1,0,0,0],
+                     [0,0,0,0,1],])
+    env = Maze_m(testa)
     #init RL
     # env.action_list
     RL = DQN(4, 2, # xxx?

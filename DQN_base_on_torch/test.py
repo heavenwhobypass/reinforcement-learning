@@ -74,3 +74,9 @@ else:
 #c = None
 #if c is None:
 #    print("asdas")
+
+#tttt = np.array([0.1,0.2,0.1,0.0])
+#print(np.argmax(tttt))
+
+a = torch.tensor([1,23,4,5])
+print(torch.argmax(a))

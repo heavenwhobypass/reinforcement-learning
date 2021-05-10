@@ -21,20 +21,21 @@ class DQN:
             learning_rate = 0.01,
             discount = 0.9,
             e_greedy=0.1,
+            e_greedy_decrement=None,
             replace_target_iter = 300,
             memory_size = 500,
-            batch_size=32,
-            e_greedy_increment = None,
+            batch_size=32,#32,
             ):
         self.n_actions = n_actions
         self.n_features = n_features
         self.lr = learning_rate
         self.gamma = discount
-        self.epsilon_max = e_greedy
+        self.epsilon_min = e_greedy
         self.replace_target_iter = replace_target_iter
         self.memory_size = memory_size
-        self.epsilon_increment = e_greedy_increment
-        self.epsilon = 1 if e_greedy_increment is not None else self.epsilon_max
+        self.epsilon_decrement = e_greedy_decrement
+        self.epsilon = 1 if e_greedy_decrement is not None else self.epsilon_min
+        #self.epsilon = e_greedy
         self.batch_size= batch_size
         # learn step
         self.learn_step_counter = 0
@@ -47,7 +48,7 @@ class DQN:
         #
         self.memory_counter = 0
         self.loss_fn = nn.MSELoss()
-        self.optimizer = torch.optim.SGD(self.now_q_NN.parameters(), self.lr)
+        self.optimizer = torch.optim.Adam(self.now_q_NN.parameters(), self.lr)
 
     def _build_net(self):
         self.now_q_NN = Q_NN().to(device)
@@ -71,7 +72,7 @@ class DQN:
         self.memory_counter += 1
         pass
 
-    def choose_action(self, state):
+    def choose_action(self, state, print_flag):
         # to tensor
         state = torch.from_numpy(state).to(device)
         #print(state)
@@ -81,6 +82,8 @@ class DQN:
         else:
             with torch.no_grad():
                 actions_value = self.now_q_NN(state)
+                if print_flag:
+                    print(actions_value)
             action = np.argmax(actions_value.cpu().numpy())
         return action
         pass
@@ -97,57 +100,91 @@ class DQN:
         else:
             sample_index = np.random.choice(self.memory_counter, size=self.batch_size)
         batch_memory = self.memory.iloc[sample_index, :]
-        batch_memory = torch.from_numpy(batch_memory.to_numpy()) # pandsDF 变 numpy
+        batch_memory = batch_memory.to_numpy() # pandsDF 变 numpy
+        #batch_memory = torch.from_numpy(batch_memory.to_numpy()) # pandsDF 变 numpy
 
+        b_s = torch.FloatTensor(batch_memory[:, :self.n_features]).to(device)
+        b_a = torch.LongTensor(batch_memory[:, self.n_features:self.n_features + 1].astype(int)).to(device)
+        b_r = torch.FloatTensor(batch_memory[:, self.n_features + 1:self.n_features + 2]).to(device)
+        b_s_ = torch.FloatTensor(batch_memory[:, -self.n_features:]).to(device)
+
+        #print(b_a.shape)
+        q_eval = self.now_q_NN(b_s).gather(1, b_a)
+        q_next = self.tar_q_NN(b_s_).detach()
+        q_target = b_r + self.gamma * q_next.max(1)[0].view(self.batch_size, 1)
+
+        loss = self.loss_fn( q_eval, q_target)
+
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+        sum_loss = loss.item()
+        self.learn_step_counter += 1
         # 获得 q_target 也就是 所谓的 label
-        q_target = None
-        with torch.no_grad():
-            for i in range(self.batch_size):
-                s = batch_memory[i,:self.n_features].to(device)
-                s_ = batch_memory[i,-self.n_features:].to(device)
-                q_eval = self.now_q_NN(s)
-                # 就是如果是s_终结state就不加了
-                if is_terminal(s_):
-                    q_next = torch.tensor([0])
-                else:
-                    q_next = self.tar_q_NN(s_)
-                #
-                q_target_tmp = q_eval.clone()
-                eval_act_index = batch_memory[self.n_features] #0 1 2 第二位是aciton
-                reward = batch_memory[i, self.n_features+1]
-                # TODO tensor 可以进行numpy操作吗？
-                # index 必须转成 int
-                q_target_tmp[eval_act_index.type(torch.int64)] = reward + self.gamma * torch.max(q_next)
-                #
-                if q_target is None:
-                    q_target = torch.unsqueeze(q_target_tmp, dim=0)
-                else:
-                    #q_target = np.vstack([q_target,q_target_tmp])
-                    q_target = torch.cat([q_target, torch.unsqueeze(q_target_tmp, dim=0)], 0)
+        ##q_target = None
+        ##with torch.no_grad():
+        ##    for i in range(self.batch_size):
+        ##        s = batch_memory[i,:self.n_features].to(device)
+        ##        s_ = batch_memory[i,-self.n_features:].to(device)
+        ##        q_eval = self.now_q_NN(s)
+        ##        # 就是如果是s_终结state就不加了
+        ##        if is_terminal(s_):
+        ##            q_next = torch.tensor([0])
+        ##        else:
+        ##            q_next = self.tar_q_NN(s_)
+        ##        #
+        ##        q_target_tmp = q_eval.clone()
+        ##        eval_act_index = batch_memory[i, self.n_features] #0 1 2 第二位是aciton
+        ##        reward = batch_memory[i, self.n_features+1]
+        ##        # TODO tensor 可以进行numpy操作吗？
+        ##        # index 必须转成 int
+        ##        q_target_tmp[eval_act_index.type(torch.int64)] = reward + self.gamma * torch.max(q_next)
+        ##        #
+        ##        if q_target is None:
+        ##            q_target = torch.unsqueeze(q_target_tmp, dim=0)
+        ##        else:
+        ##            #q_target = np.vstack([q_target,q_target_tmp])
+        ##            q_target = torch.cat([q_target, torch.unsqueeze(q_target_tmp, dim=0)], 0)
+        ##        #print(q_eval)
+        ##        #print(q_next)
+        ##        #print(q_target_tmp)
+        ##        #print(eval_act_index.type(torch.int64))
+        ##        #print(torch.max(q_next))
+        ##        #print(q_target.shape)
+        ##        #print(q_target)
+        ##    #print("-------end sample")
 
-                # 正式 的 训练
-        
-        for i in range(self.batch_size):
-            X = batch_memory[i, :self.n_features].to(device)
-            y = q_target[i, :].to(device)
-            # compute loss
-            pred = self.now_q_NN(X)
-#            print(pred.shape)
-#            print(y.shape)
-#            pred = torch.unsqueeze(pred, 0)
-#            y = torch.unsqueeze(y, 0)
-#            print(pred.shape)
-#            print(y.shape)
-#            print(pred)
-#            print(y)
-            loss = self.loss_fn(pred, y)
-            # back propagation
-            self.optimizer.zero_grad()
-            loss.backward()
-            self.optimizer.step()
-            #record loss
-            self.loss_history.append(loss.item())
-            self.learn_step_counter += 1
+        ##        # 正式 的 训练
+        ##
+        ##sum_loss = 0
+        ##for i in range(self.batch_size):
+        ##    X = batch_memory[i, :self.n_features].to(device)
+        ##    y = q_target[i, :].to(device)
+        ##    # compute loss
+        ##    pred = self.now_q_NN(X)
+#       ##     print(pred.shape)
+#       ##     print(y.shape)
+#       ##     pred = torch.unsqueeze(pred, 0)
+#       ##     y = torch.unsqueeze(y, 0)
+#       ##     print(pred.shape)
+#       ##     print(y.shape)
+#       ##     print(pred)
+#       ##     print(y)
+        ##    #print(pred)
+        ##    #print(y)
+        ##    loss = torch.sum(torch.pow((y - pred), 2))
+        ##    #loss = self.loss_fn(pred,y)
+        ##    # back propagation
+        ##    self.optimizer.zero_grad()
+        ##    loss.backward(loss.clone().detach())
+        ##    self.optimizer.step()
+        ##    #record loss
+        ##    #print(loss.item())
+        ##    sum_loss += loss.item()
+        ##    self.learn_step_counter += 1
+        self.epsilon = self.epsilon - self.epsilon_decrement if self.epsilon > self.epsilon_min else self.epsilon_min
+        self.loss_history.append(sum_loss)
+#        input()
         pass
 
     def plot_loss(self):
@@ -188,27 +225,28 @@ class Q_NN(nn.Module):
     def __init__(self):
         super().__init__()
         self.linear_relu_stack = nn.Sequential(
-                nn.Linear(2, 512),
+                nn.Linear(2, 16),
                 nn.ReLU(),
-                nn.Linear(512, 512),
+                nn.Linear(16, 16),
                 nn.ReLU(),
-                nn.Linear(512, 4),
-                nn.ReLU(),
+                nn.Linear(16, 4),
+                #nn.ReLU(),
                 )
 
     def forward(self, x):
         action_value = self.linear_relu_stack(x)
         return action_value
 
-model = DQN(4, 2)
-print(model.choose_action(np.array([0.,0.], dtype=np.float32)))
+#model = DQN(4, 2)
+#print(model.choose_action(np.array([0.,0.], dtype=np.float32)))
 
+# TODO  根据 maze要改的
 def is_terminal(s_):
-    if s_[0] == 2 and s_[1] == 2:
+    if s_[0] == 4 and s_[1] == 4:
         return True
-    elif s_[0] == 1 and s_[1] == 2:
+    elif s_[0] == 1 and s_[1] == 3:
         return True
-    elif s_[0] == 2 and s_[1] == 1:
+    elif s_[0] == 3 and s_[1] == 1:
         return True
     return False
 

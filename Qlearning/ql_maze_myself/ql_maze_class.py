@@ -11,9 +11,10 @@ import numpy as np
 
 class Maze_m: # only cube n*n
     def __init__(self, martix=None):
-        if martix == None:
+        if martix is None:
             self.martix = np.zeros((4,4))
             self.martix[1,2] = self.martix[2,1] = -1
+            #self.martix[1,2] = -1
             self.martix[2,2] = 1
         else:
             self.martix = martix
@@ -40,9 +41,13 @@ class Maze_m: # only cube n*n
         tmpindex = self.action_list.index(action)
         self.posnow[0]+=self.action_op[tmpindex,0]
         self.posnow[1]+=self.action_op[tmpindex,1]
+        reward=0
+        if np.any(self.posnow<0) or np.any(self.posnow>=self.maxl):
+            reward = -0.5
         self.posnow[self.posnow<0] = 0
         self.posnow[self.posnow>=self.maxl] = self.maxl-1
-        reward = self.martix[self.posnow[0],self.posnow[1]]
+        if reward != -0.5:
+            reward = self.martix[self.posnow[0],self.posnow[1]]
         if reward == 1 or reward == -1:
             done = True
         else:
